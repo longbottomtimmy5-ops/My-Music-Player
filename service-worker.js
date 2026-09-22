@@ -33,7 +33,12 @@ self.addEventListener('fetch', event => {
           caches.open(CACHE_NAME).then(cache => cache.put(req, clone));
         }
         return resp;
-      }).catch(() => cached);
+      }).catch(() => {
+        return cached || new Response(
+          'Hors-ligne : cette page n\'a pas encore été téléchargée.',
+          { status: 503, statusText: 'Service Unavailable', headers: { 'Content-Type': 'text/plain; charset=utf-8' } }
+        );
+      });
     })
   );
 });
