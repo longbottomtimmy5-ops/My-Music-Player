@@ -4,6 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Lecteur</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0d0d0f">
+<link rel="icon" href="icons/icon-192.png">
 <style>
   :root{
     --bg:#0d0d0f;
@@ -43,6 +46,41 @@
   .topbar .count{
     color:var(--sub);
     font-size:13px;
+  }
+  .topbar .spacer{flex:1;}
+  .offline-widget{display:flex;align-items:center;gap:10px;}
+  .offline-btn{
+    background:var(--panel);
+    border:1px solid var(--line);
+    color:var(--text);
+    font-size:12.5px;
+    font-weight:600;
+    padding:8px 14px;
+    border-radius:20px;
+    cursor:pointer;
+  }
+  .offline-btn:hover{background:var(--panel-hover);}
+  .offline-btn:disabled{opacity:.6;cursor:default;}
+  .offline-btn.offline-ready{
+    background:var(--accent-dim);
+    border-color:var(--accent);
+    color:var(--accent);
+  }
+  .offline-progress{
+    display:none;
+    align-items:center;
+    gap:8px;
+  }
+  .offline-progress-bar{
+    width:100px;height:4px;background:var(--line);border-radius:2px;overflow:hidden;
+  }
+  .offline-progress-fill{
+    height:100%;width:0%;background:var(--accent);
+  }
+  .offline-progress-text{
+    font-size:11.5px;color:var(--sub);
+    font-variant-numeric:tabular-nums;
+    white-space:nowrap;
   }
 
   /* ---------- Main layout ---------- */
@@ -264,6 +302,14 @@
   <div class="topbar">
     <h1>Ma sélection</h1>
     <span class="count" id="trackCount"></span>
+    <div class="spacer"></div>
+    <div class="offline-widget">
+      <div class="offline-progress" id="offlineProgress">
+        <div class="offline-progress-bar"><div class="offline-progress-fill" id="offlineProgressFill"></div></div>
+        <span class="offline-progress-text" id="offlineProgressText"></span>
+      </div>
+      <button class="offline-btn" id="btnOffline">Télécharger pour écoute hors-ligne</button>
+    </div>
   </div>
 
   <div class="main">
@@ -322,46 +368,8 @@
 
 <audio id="audio" preload="metadata"></audio>
 
+<script src="tracks.js"></script>
 <script>
-const tracks = [
-  {file:"music/Avec_Toi_spotdown_org.mp3", cover:"music/covers/Avec_Toi_spotdown_org.jpg", title:"Avec Toi", artist:"OBOY", album:"OMEGA"},
-  {file:"music/Jusqu_au_dernier_gramme_spotdown_org.mp3", cover:"music/covers/Jusqu_au_dernier_gramme_spotdown_org.jpg", title:"Jusqu'au dernier gramme", artist:"PNL", album:"Dans la légende"},
-  {file:"music/À_tes_côtés_spotdown_org.mp3", cover:"music/covers/À_tes_côtés_spotdown_org.jpg", title:"À tes côtés", artist:"Djadja & Dinaz", album:"À tes côtés"},
-  {file:"music/Princesse_de_Babel__SABR__spotdown_org.mp3", cover:"music/covers/Princesse_de_Babel__SABR__spotdown_org.jpg", title:"Princesse de Babel (SABR)", artist:"Zamdane", album:"Unknown Album"},
-  {file:"music/Ailleurs_spotdown_org.mp3", cover:"music/covers/Ailleurs_spotdown_org.jpg", title:"Ailleurs", artist:"Josman", album:"J.000.$"},
-  {file:"music/La_course_spotdown_org.mp3", cover:"music/covers/La_course_spotdown_org.jpg", title:"La course", artist:"Bouss", album:"Et si j'échoue ??"},
-  {file:"music/Daruma_spotdown_org.mp3", cover:"music/covers/Daruma_spotdown_org.jpg", title:"Daruma", artist:"Népal", album:"Adios Bahamas"},
-  {file:"music/Cohiba_spotdown_org.mp3", cover:"music/covers/Cohiba_spotdown_org.jpg", title:"Cohiba", artist:"Josman", album:"J.000.$"},
-  {file:"music/Amsterdam_spotdown_org.mp3", cover:"music/covers/Amsterdam_spotdown_org.jpg", title:"Amsterdam", artist:"Moha La Squale", album:"Amsterdam"},
-  {file:"music/Mi_Amor_spotdown_org.mp3", cover:"music/covers/Mi_Amor_spotdown_org.jpg", title:"Mi Amor", artist:"Hamza", album:"H-24"},
-  {file:"music/Rare_spotdown_org.mp3", cover:"music/covers/Rare_spotdown_org.jpg", title:"Rare", artist:"VEN1", album:"Rare"},
-  {file:"music/J_béou_spotdown_org.mp3", cover:"music/covers/J_béou_spotdown_org.jpg", title:"J'béou", artist:"Bouss", album:"Et si j'échoue ??"},
-  {file:"music/Jeu_spotdown_org.mp3", cover:"music/covers/Jeu_spotdown_org.jpg", title:"Jeu", artist:"Favé", album:"Pleins Phares"},
-  {file:"music/JAMAIS_TOI_spotdown_org.mp3", cover:"music/covers/JAMAIS_TOI_spotdown_org.jpg", title:"JAMAIS TOI", artist:"R2", album:"JAMAIS TOI"},
-  {file:"music/Vent_de_l_est_spotdown_org.mp3", cover:"music/covers/Vent_de_l_est_spotdown_org.jpg", title:"Vent de l'est", artist:"Laylow", album:".RAW-Z"},
-  {file:"music/SAINT-LAURENT_spotdown_org.mp3", cover:"music/covers/SAINT-LAURENT_spotdown_org.jpg", title:"SAINT-LAURENT", artist:"Moji x Sboy", album:"SAINT-LAURENT"},
-  {file:"music/ON_THE_MAP_spotdown_org.mp3", cover:"music/covers/ON_THE_MAP_spotdown_org.jpg", title:"ON THE MAP", artist:"T3llz", album:"Unknown Album"},
-  {file:"music/Naha_spotdown_org.mp3", cover:"music/covers/Naha_spotdown_org.jpg", title:"Naha", artist:"PNL", album:"Dans la légende"},
-  {file:"music/Croire_spotdown_org.mp3", cover:"music/covers/Croire_spotdown_org.jpg", title:"Croire", artist:"Djadja & Dinaz", album:"Drôle de mentalité"},
-  {file:"music/Faf_spotdown_org.mp3", cover:"music/covers/Faf_spotdown_org.jpg", title:"Faf", artist:"Werenoi", album:"Pyramide 2"},
-  {file:"music/Le_bruit_et_le_silence_spotdown_org.mp3", cover:"music/covers/Le_bruit_et_le_silence_spotdown_org.jpg", title:"Le bruit et le silence", artist:"NeS", album:"Des pieds et des mains"},
-  {file:"music/Crossfader_spotdown_org.mp3", cover:"music/covers/Crossfader_spotdown_org.jpg", title:"Crossfader", artist:"Népal", album:"Adios Bahamas"},
-  {file:"music/Rose_spotdown_org.mp3", cover:"music/covers/Rose_spotdown_org.jpg", title:"Rose", artist:"Ninho", album:"Comme prévu"},
-  {file:"music/HINATA_spotdown_org.mp3", cover:"music/covers/HINATA_spotdown_org.jpg", title:"HINATA", artist:"TIF", album:"1.6"},
-  {file:"music/Bambina_spotdown_org.mp3", cover:"music/covers/Bambina_spotdown_org.jpg", title:"Bambina", artist:"PNL", album:"Dans la légende"},
-  {file:"music/DEHØRS_spotdown_org.mp3", cover:"music/covers/DEHØRS_spotdown_org.jpg", title:"DEHØRS", artist:"Bekar", album:"Mirasierra"},
-  {file:"music/SUBLIME_spotdown_org.mp3", cover:"music/covers/SUBLIME_spotdown_org.jpg", title:"SUBLIME", artist:"disiz", album:"L'Amour"},
-  {file:"music/Bad_Day__SABR__spotdown_org.mp3", cover:"music/covers/Bad_Day__SABR__spotdown_org.jpg", title:"Bad Day (SABR)", artist:"Zamdane", album:"Unknown Album"},
-  {file:"music/Ma_dope_spotdown_org.mp3", cover:"music/covers/Ma_dope_spotdown_org.jpg", title:"Ma dope", artist:"Nekfeu, S.Pri Noir", album:"Feu"},
-  {file:"music/Luna_spotdown_org.mp3", cover:"music/covers/Luna_spotdown_org.jpg", title:"Luna", artist:"Moha La Squale", album:"Bendero"},
-  {file:"music/Elles_ont_trop_joué_avec_mon_coeur_spotdown_org.mp3", cover:"music/covers/Elles_ont_trop_joué_avec_mon_coeur_spotdown_org.jpg", title:"Elles ont trop joué avec mon coeur", artist:"Jok'air", album:"VI République (Version finale)"},
-  {file:"music/Prioritaire_spotdown_org.mp3", cover:"music/covers/Prioritaire_spotdown_org.jpg", title:"Prioritaire", artist:"Maes", album:"Les derniers salopards"},
-  {file:"music/Jolie__feat__Ninho__spotdown_org.mp3", cover:"music/covers/Jolie__feat__Ninho__spotdown_org.jpg", title:"Jolie (feat. Ninho)", artist:"GAULOIS, Ninho", album:"Jolie (feat. Ninho)"},
-  {file:"music/Quand_tout_s_enflamme_spotdown_org.mp3", cover:"music/covers/Quand_tout_s_enflamme_spotdown_org.jpg", title:"Quand tout s'enflamme", artist:"Georgio, PLK", album:"Années Sauvages"},
-  {file:"music/Hakayet_spotdown_org.mp3", cover:"music/covers/Hakayet_spotdown_org.jpg", title:"Hakayet", artist:"VEN1", album:"Nichen"},
-  {file:"music/Solitaire_spotdown_org.mp3", cover:"music/covers/Solitaire_spotdown_org.jpg", title:"Solitaire", artist:"Werenoi", album:"Telegram"},
-  {file:"music/Luz_de_Luna_spotdown_org.mp3", cover:"music/covers/Luz_de_Luna_spotdown_org.jpg", title:"Luz de Luna", artist:"PNL", album:"Dans la légende"}
-];
 
 const audio = document.getElementById('audio');
 const playlistEl = document.getElementById('playlist');
@@ -566,6 +574,85 @@ window.addEventListener('keydown', (e)=>{
 
 // init
 loadTrack(0, false);
+
+// ---------- Offline mode ----------
+const CACHE_NAME = 'lecteur-cache-v1';
+const btnOffline = document.getElementById('btnOffline');
+const offlineProgress = document.getElementById('offlineProgress');
+const offlineProgressFill = document.getElementById('offlineProgressFill');
+const offlineProgressText = document.getElementById('offlineProgressText');
+
+function getAllAssetUrls(){
+  const urls = ['index.html', 'tracks.js', 'manifest.json'];
+  tracks.forEach(t=>{ urls.push(t.file); urls.push(t.cover); });
+  return urls;
+}
+
+async function checkOfflineStatus(){
+  if(!('caches' in window)) return {supported:false};
+  const cache = await caches.open(CACHE_NAME);
+  const urls = getAllAssetUrls();
+  let cachedCount = 0;
+  for(const u of urls){
+    const match = await cache.match(u);
+    if(match) cachedCount++;
+  }
+  return {supported:true, cachedCount, total:urls.length};
+}
+
+async function updateOfflineUI(){
+  const status = await checkOfflineStatus();
+  if(!status.supported){
+    btnOffline.style.display = 'none';
+    return;
+  }
+  if(status.cachedCount >= status.total){
+    btnOffline.textContent = 'Disponible hors-ligne ✓';
+    btnOffline.classList.add('offline-ready');
+  } else if(status.cachedCount > 0){
+    btnOffline.textContent = `Reprendre le téléchargement (${status.cachedCount}/${status.total})`;
+    btnOffline.classList.remove('offline-ready');
+  } else {
+    btnOffline.textContent = 'Télécharger pour écoute hors-ligne';
+    btnOffline.classList.remove('offline-ready');
+  }
+}
+
+async function downloadForOffline(){
+  if(!('caches' in window)) return;
+  const cache = await caches.open(CACHE_NAME);
+  const urls = getAllAssetUrls();
+  let done = 0;
+  btnOffline.disabled = true;
+  offlineProgress.style.display = 'flex';
+
+  for(const u of urls){
+    try{
+      const existing = await cache.match(u);
+      if(!existing){
+        const resp = await fetch(u);
+        if(resp.ok) await cache.put(u, resp);
+      }
+    } catch(e){ /* skip failures, keep going */ }
+    done++;
+    const pct = Math.round((done/urls.length)*100);
+    offlineProgressFill.style.width = pct + '%';
+    offlineProgressText.textContent = `${pct}% (${done}/${urls.length})`;
+  }
+
+  btnOffline.disabled = false;
+  offlineProgress.style.display = 'none';
+  updateOfflineUI();
+}
+
+btnOffline.addEventListener('click', downloadForOffline);
+updateOfflineUI();
+
+if('serviceWorker' in navigator){
+  window.addEventListener('load', ()=>{
+    navigator.serviceWorker.register('service-worker.js').catch(()=>{});
+  });
+}
 </script>
 </body>
 </html>
